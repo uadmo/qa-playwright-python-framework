@@ -1,31 +1,29 @@
 from playwright.sync_api import expect
 
-def test_complete_checkout_flow(logged_in_page):
-    #1. Add item and go to cart
-    logged_in_page.get_by_text('Sauce Labs Backpack').click()
-    logged_in_page.get_by_role('button', name='Add to cart').click()
-    logged_in_page.locator('a.shopping_cart_link').click()
+def test_complete_checkout_flow(login_page, products_page, cart_page, form_page):
 
-    #2. Assert we are in the cart
-    expect(logged_in_page).to_have_url('/cart.html')
-    expect(logged_in_page.locator('.inventory_item_name')).to_have_text('Sauce Labs Backpack')
+    # Login
+    login_page.navigate("/")
+    login_page.login("standard_user", "secret_sauce")
 
-    #3. Proceed to checkout
-    logged_in_page.get_by_test_id('checkout').click()
+    # Add product to cart
+    products_page.add_product_to_cart("Sauce Labs Backpack")
+    products_page.go_to_cart()
+
+    # Assert cart item
+    cart_page.assert_cart_item("Sauce Labs Backpack")
+    cart_page.proceed_to_checkout()
 
     # Fill form
-    logged_in_page.get_by_test_id('firstName').fill('John')
-    logged_in_page.get_by_test_id('lastName').fill('Doe')
-    logged_in_page.get_by_test_id('postalCode').fill('12345')
-    logged_in_page.get_by_test_id('continue').click()
+    form_page.fill_form("John", "Doe", "12345")
 
-    #4. Final Overview Assertion
-    expect(logged_in_page.locator('.summary_total_label')).to_contain_text('$32.39')
+    # Final Overview Assertion
+    form_page.assert_total("$32.39")
 
     # Finish the purchase
-    logged_in_page.get_by_test_id('finish').click()
+    form_page.finish_purchase()
 
-    #5. Assert we see the success message
-    expect(logged_in_page.get_by_role('heading')).to_have_text('Thank you for your order!')
+    # Assert we see the success message
+    form_page.assert_success_message("Thank you for your order!")
 
-    expect(logged_in_page.locator('.shopping_cart_badge')).not_to_be_visible()
+    expect(products_page.cart_badge).not_to_be_visible()
